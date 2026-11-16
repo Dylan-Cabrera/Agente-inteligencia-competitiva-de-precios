@@ -6,3 +6,6 @@ __pycache__/
 .adk/
 vector_store/
 environment_agent/
+data/
+informes/
+.pytest_cache/
