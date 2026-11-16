@@ -9,7 +9,7 @@ os.makedirs(WORKING_DIR, exist_ok=True)
 
 agent_01 = Agent(
     model=LiteLlm(
-        model="ollama_chat/qwen3:8b",
+        model=os.environ.get("MODELO_AGENTE", "ollama_chat/qwen3:8b"),
         reasoning_effort="none"
     ),
     name='agent_01',
