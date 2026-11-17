@@ -1,0 +1,188 @@
+{
+  "_doc": "Registro de supermercados competidores (lo amplía descubrir_competidor).",
+  "por_defecto": [
+    "carrefour",
+    "jumbo",
+    "dia"
+  ],
+  "competidores": {
+    "carrefour": {
+      "nombre": "Carrefour",
+      "base": "https://www.carrefour.com.ar",
+      "tipo": "vtex",
+      "pais": "Argentina",
+      "moneda": "ARS",
+      "estado": "activo",
+      "origen": "registro inicial (verificado manualmente)"
+    },
+    "jumbo": {
+      "nombre": "Jumbo",
+      "base": "https://www.jumbo.com.ar",
+      "tipo": "vtex",
+      "pais": "Argentina",
+      "moneda": "ARS",
+      "estado": "activo",
+      "origen": "registro inicial (verificado manualmente)"
+    },
+    "disco": {
+      "nombre": "Disco",
+      "base": "https://www.disco.com.ar",
+      "tipo": "vtex",
+      "pais": "Argentina",
+      "moneda": "ARS",
+      "estado": "activo",
+      "origen": "registro inicial (verificado manualmente)"
+    },
+    "vea": {
+      "nombre": "Vea",
+      "base": "https://www.vea.com.ar",
+      "tipo": "vtex",
+      "pais": "Argentina",
+      "moneda": "ARS",
+      "estado": "activo",
+      "origen": "registro inicial (verificado manualmente)"
+    },
+    "dia": {
+      "nombre": "Día",
+      "base": "https://diaonline.supermercadosdia.com.ar",
+      "tipo": "vtex",
+      "pais": "Argentina",
+      "moneda": "ARS",
+      "estado": "activo",
+      "origen": "registro inicial (verificado manualmente)"
+    },
+    "cordiez": {
+      "nombre": "Cordiez",
+      "base": "https://www.cordiez.com.ar",
+      "tipo": "vtex",
+      "pais": "Argentina",
+      "moneda": "ARS",
+      "estado": "activo",
+      "origen": "registro inicial (verificado manualmente)"
+    },
+    "jumbocolombia": {
+      "nombre": "Jumbo Colombia",
+      "base": "https://www.jumbocolombia.com",
+      "tipo": "vtex",
+      "pais": "Colombia",
+      "moneda": "COP",
+      "estado": "activo",
+      "origen": "registro inicial (verificado manualmente)"
+    },
+    "olimpica": {
+      "nombre": "Olímpica",
+      "base": "https://www.olimpica.com",
+      "tipo": "vtex",
+      "pais": "Colombia",
+      "moneda": "COP",
+      "estado": "activo",
+      "origen": "registro inicial (verificado manualmente)"
+    },
+    "wong": {
+      "nombre": "Wong",
+      "base": "https://www.wong.pe",
+      "tipo": "vtex",
+      "pais": "Perú",
+      "moneda": "PEN",
+      "estado": "activo",
+      "origen": "registro inicial (verificado manualmente)"
+    },
+    "metro": {
+      "nombre": "Metro Perú",
+      "base": "https://www.metro.pe",
+      "tipo": "vtex",
+      "pais": "Perú",
+      "moneda": "PEN",
+      "estado": "activo",
+      "origen": "registro inicial (verificado manualmente)"
+    },
+    "plazavea": {
+      "nombre": "Plaza Vea",
+      "base": "https://www.plazavea.com.pe",
+      "tipo": "vtex",
+      "pais": "Perú",
+      "moneda": "PEN",
+      "estado": "activo",
+      "origen": "registro inicial (verificado manualmente)"
+    },
+    "tottus": {
+      "nombre": "Tottus Perú",
+      "base": "https://www.tottus.com.pe",
+      "tipo": "scraping",
+      "pais": "Perú",
+      "moneda": "PEN",
+      "estado": "activo",
+      "origen": "registro inicial (verificado manualmente)",
+      "scraping": {
+        "url_busqueda": "https://www.tottus.com.pe/tottus-pe/buscar?Ntt={q}",
+        "estrategias": [
+          "nextdata"
+        ]
+      }
+    },
+    "vivanda": {
+      "nombre": "Vivanda",
+      "base": "https://www.vivanda.com.pe",
+      "tipo": "scraping",
+      "pais": "Perú",
+      "moneda": "PEN",
+      "estado": "activo",
+      "origen": "registro inicial (verificado manualmente)",
+      "scraping": {
+        "url_busqueda": "https://www.vivanda.com.pe/search/{q}",
+        "estrategias": [
+          "jsonld"
+        ]
+      }
+    },
+    "coto": {
+      "nombre": "Coto",
+      "base": "https://www.coto.com.ar",
+      "tipo": "bloqueado",
+      "pais": "Argentina",
+      "moneda": "ARS",
+      "estado": "bloqueado",
+      "motivo": "redirige a página de error ante clientes automatizados",
+      "origen": "verificado manualmente 2026-11-17"
+    },
+    "laanonima": {
+      "nombre": "La Anónima",
+      "base": "https://www.laanonimaonline.com",
+      "tipo": "bloqueado",
+      "pais": "Argentina",
+      "moneda": "ARS",
+      "estado": "bloqueado",
+      "motivo": "HTTP 403 a clientes automatizados",
+      "origen": "verificado manualmente 2026-11-17"
+    },
+    "libertad": {
+      "nombre": "Libertad",
+      "base": "https://www.hiperlibertad.com.ar",
+      "tipo": "bloqueado",
+      "pais": "Argentina",
+      "moneda": "ARS",
+      "estado": "bloqueado",
+      "motivo": "HTTP 403 a clientes automatizados",
+      "origen": "verificado manualmente 2026-11-17"
+    },
+    "soriana": {
+      "nombre": "Soriana",
+      "base": "https://www.soriana.com",
+      "tipo": "bloqueado",
+      "pais": "México",
+      "moneda": "MXN",
+      "estado": "bloqueado",
+      "motivo": "HTTP 403 (firewall: 'GF R01 Blocked')",
+      "origen": "verificado manualmente 2026-11-17"
+    },
+    "chedraui": {
+      "nombre": "Chedraui",
+      "base": "https://www.chedraui.com.mx",
+      "tipo": "vtex",
+      "pais": "México",
+      "moneda": "MXN",
+      "estado": "activo",
+      "origen": "descubierto automáticamente el 2026-11-17T14:02:31-03:00"
+    }
+  }
+}

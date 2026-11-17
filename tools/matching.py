@@ -32,6 +32,7 @@ NEUTRAS = {
     "original", "clasico", "clasica", "tradicional", "sabor", "botella", "pet", "pack",
     "multipack", "paquete", "envase", "unidad", "unidades", "regular", "comun", "nuevo",
     "nueva", "formato", "bolsa", "cont", "contenido", "neto", "aprox", "grano", "tostado",
+    "desinfectante", "blanqueador",  # descriptivos habituales de lavandina / cloro
     # Nota: "lata", "frasco", "estuche", "retornable", etc. NO son neutras: cambian el precio.
 }
 
@@ -71,6 +72,14 @@ VARIANTES = {
 
 # Sinónimos del tipo de producto (token del catálogo -> alternativas aceptadas).
 SINONIMOS_TIPO = {
+    # Nombres regionales (Argentina -> México / Perú / Colombia / España). El 1er elemento es el propio.
+    "lavandina": ["lavandina", "cloro", "blanqueador", "lejia"],
+    "gaseosa": ["gaseosa", "refresco", "soda"],
+    "jugo": ["jugo", "zumo", "nectar"],
+    "pasta": ["pasta", "crema"],          # pasta dental / crema dental
+    "higienico": ["higienico", "sanitario"],
+    "esponja": ["esponja", "fibra"],
+    "suavizante": ["suavizante", "suavizador"],
     "residuo": ["residuo", "consorcio", "basura"],
     "rollo": ["rollo", "toalla"],
     "cocina": ["cocina"],

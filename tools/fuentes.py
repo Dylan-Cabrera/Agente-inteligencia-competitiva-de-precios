@@ -32,22 +32,48 @@ USER_AGENT = os.environ.get(
 INTERVALO_MIN_SEG = float(os.environ.get("INTERVALO_MIN_SEG", "1.0"))
 TIMEOUT_SEG = float(os.environ.get("TIMEOUT_SEG", "15"))
 
-# Registro de competidores: país / moneda permiten contemplar diferencias regionales.
-COMPETIDORES: dict[str, dict] = {
-    "carrefour": {"nombre": "Carrefour", "base": "https://www.carrefour.com.ar", "tipo": "vtex",
-                  "pais": "Argentina", "moneda": "ARS"},
-    "jumbo": {"nombre": "Jumbo", "base": "https://www.jumbo.com.ar", "tipo": "vtex",
-              "pais": "Argentina", "moneda": "ARS"},
-    "disco": {"nombre": "Disco", "base": "https://www.disco.com.ar", "tipo": "vtex",
-              "pais": "Argentina", "moneda": "ARS"},
-    "vea": {"nombre": "Vea", "base": "https://www.vea.com.ar", "tipo": "vtex",
-            "pais": "Argentina", "moneda": "ARS"},
-    "dia": {"nombre": "Día", "base": "https://diaonline.supermercadosdia.com.ar", "tipo": "vtex",
-            "pais": "Argentina", "moneda": "ARS"},
-    "masonline": {"nombre": "Más Online (ChangoMás)", "base": "https://www.masonline.com.ar",
-                  "tipo": "vtex", "pais": "Argentina", "moneda": "ARS"},
-}
-COMPETIDORES_POR_DEFECTO = ["carrefour", "jumbo", "dia"]
+# Registro de competidores: vive en competidores.json (no en el código). El agente lo amplía con
+# descubrir_competidor (tools/descubrimiento.py), que guarda URL + método (vtex | scraping) o si el
+# sitio bloquea, para que la próxima consulta no tenga que volver a descubrirlo.
+REGISTRO_JSON = os.environ.get("COMPETIDORES_JSON",
+                               os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                            "competidores.json"))
+COMPETIDORES: dict[str, dict] = {}
+COMPETIDORES_POR_DEFECTO: list[str] = ["carrefour", "jumbo", "dia"]
+
+
+def cargar_registro() -> dict[str, dict]:
+    """(Re)carga competidores.json en COMPETIDORES (se modifica en el lugar: los imports lo ven)."""
+    global COMPETIDORES_POR_DEFECTO
+    try:
+        with open(REGISTRO_JSON, encoding="utf-8") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        data = {"competidores": {}}
+    COMPETIDORES.clear()
+    COMPETIDORES.update(data.get("competidores", {}))
+    COMPETIDORES_POR_DEFECTO = data.get("por_defecto", COMPETIDORES_POR_DEFECTO)
+    return COMPETIDORES
+
+
+def guardar_competidor(clave: str, datos: dict) -> None:
+    """Agrega o actualiza un competidor y persiste el registro (escritura atómica)."""
+    cargar_registro()
+    COMPETIDORES[clave] = datos
+    tmp = REGISTRO_JSON + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump({"_doc": "Registro de supermercados competidores (lo amplía descubrir_competidor).",
+                   "por_defecto": COMPETIDORES_POR_DEFECTO, "competidores": COMPETIDORES},
+                  f, ensure_ascii=False, indent=2)
+    os.replace(tmp, REGISTRO_JSON)
+
+
+def activos() -> dict[str, dict]:
+    """Competidores consultables (excluye los que bloquean el acceso automatizado)."""
+    return {k: v for k, v in COMPETIDORES.items() if v.get("estado", "activo") == "activo"}
+
+
+cargar_registro()
 
 _ultimo_request: dict[str, float] = {}
 _robots: dict[str, urllib.robotparser.RobotFileParser | None] = {}
@@ -69,7 +95,7 @@ def resolver_competidores(texto: str | None, pais: str | None = None) -> tuple[l
     if not t:
         claves = list(COMPETIDORES_POR_DEFECTO)
     elif t in {"todos", "all"}:
-        claves = list(COMPETIDORES)
+        claves = list(activos())
     else:
         for parte in t.replace(";", ",").replace(" y ", ",").split(","):
             p = normalizar(parte).replace(" ", "")
@@ -188,6 +214,14 @@ def _parsear_producto_vtex(p: dict, competidor: dict, fecha: str) -> dict | None
 def buscar_en_competidor(clave: str, consulta: str, max_resultados: int = 8) -> dict:
     """Busca una consulta de texto en un competidor. Nunca lanza: devuelve estado + resultados."""
     comp = COMPETIDORES[clave]
+    if comp.get("estado") == "bloqueado":
+        return {"competidor": comp["nombre"], "estado": "acceso_no_permitido",
+                "detalle": f"{comp['nombre']} bloquea el acceso automatizado ({comp.get('motivo', '')}); "
+                           "no se evade el bloqueo.",
+                "resultados": [], "url_consulta": comp["base"], "fecha_consulta": ahora_iso()}
+    if comp.get("tipo") == "scraping":
+        from tools.scraper_web import buscar_scraping
+        return buscar_scraping(clave, consulta, max_resultados)
     fecha = ahora_iso()
     url = (f"{comp['base']}/api/catalog_system/pub/products/search?"
            f"ft={urllib.parse.quote(consulta)}&_from=0&_to={max(0, max_resultados - 1)}")
@@ -230,10 +264,14 @@ def buscar_precio_competencia(consulta: str, competidores: str = "", max_resulta
 
 def listar_competidores() -> list[dict]:
     """
-    Lista los supermercados competidores configurados, con país, moneda y tipo de fuente.
+    Lista los supermercados del registro (competidores.json): país, moneda, método (API VTEX o
+    scraping) y si bloquean el acceso automatizado. Si el usuario nombra uno que no está, usar
+    descubrir_competidor.
     Returns:
-        Lista de competidores disponibles para investigar.
+        Lista de competidores registrados.
     """
+    cargar_registro()
     return [{"clave": k, "nombre": v["nombre"], "pais": v["pais"], "moneda": v["moneda"],
-             "fuente": f"API pública VTEX ({v['base']})",
+             "metodo": v.get("tipo"), "estado": v.get("estado", "activo"),
+             **({"motivo": v["motivo"]} if v.get("motivo") else {}),
              "por_defecto": k in COMPETIDORES_POR_DEFECTO} for k, v in COMPETIDORES.items()]
