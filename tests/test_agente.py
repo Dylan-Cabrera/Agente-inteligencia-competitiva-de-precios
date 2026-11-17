@@ -2,6 +2,7 @@
 Tests offline (sin red ni Ollama) de los criterios de aceptación verificables con código.
 Ejecutar:  env/bin/python -m pytest -q
 """
+import json
 import os
 import sys
 
@@ -164,10 +165,10 @@ def _fake_busqueda(resultados_por_competidor):
         res = [{"competidor": comp["nombre"], "marca": m, "nombre_encontrado": n, "precio_regular": reg,
                 "precio_promocional": promo, "promocion": "10% de descuento" if promo else None,
                 "promociones_condicionadas": None, "disponible": True, "moneda": "ARS", "pais": "Argentina",
-                "url": f"{comp['base']}/{clave}-item/p", "fuente": "test", "fecha_consulta": "2026-11-15T10:00:00-03:00"}
+                "url": f"{comp['base']}/{clave}-item/p", "fuente": "test", "fecha_consulta": fuentes.ahora_iso()}
                for n, m, reg, promo in resultados_por_competidor.get(clave, [])]
         return {"competidor": comp["nombre"], "estado": "ok" if res else "sin_resultados", "resultados": res,
-                "url_consulta": f"{comp['base']}/api?ft={consulta}", "fecha_consulta": "2026-11-15T10:00:00-03:00"}
+                "url_consulta": f"{comp['base']}/api?ft={consulta}", "fecha_consulta": fuentes.ahora_iso()}
     return buscar
 
 
@@ -182,8 +183,8 @@ def test_pipeline_end_to_end(db_temporal, monkeypatch):
     from tools.investigacion import investigar_productos
     r = investigar_productos("RAG-00488, RAG-77777", "Carrefour, Día, Jumbo, Coto")
     assert r["productos_inexistentes_en_catalogo"] == ["RAG-77777"]
-    assert r["competidores_no_soportados"] == ["coto"]
     filas = {f["competidor"]: f for f in r["resultados"][0]["competidores"]}
+    assert filas["Coto"]["estado"] == "acceso_no_permitido"           # registrado como bloqueado: no se evade
     assert filas["Jumbo"]["estado"] == "no_encontrado"                    # no inventa precio
     assert filas["Día"]["estado"] == "requiere_revision"                   # variante "sin palo"
     assert filas["Carrefour"]["estado"] == "requiere_revision"             # variante "con palo"
@@ -215,3 +216,51 @@ def test_pipeline_comparacion_directa(db_temporal, monkeypatch):
     assert f["diferencia_porcentual_promo"] == pytest.approx(-10.0, abs=0.01)
     assert f["clasificacion"] == "ragnar_mas_barato_significativo"
     assert r["resumen"]["observaciones_comparables"] == 1
+
+
+# --- Scraper web y regiones -------------------------------------------------------------------
+
+def test_scraper_jsonld_y_nextdata():
+    from tools import scraper_web as sw
+    html = ('<script type="application/ld+json">{"@type":"ItemList","itemListElement":[{"item":{"@type":"Product",'
+            '"name":"Aceite Primor 900ml","brand":{"name":"PRIMOR"},"url":"/p1","offers":{"price":"11.2",'
+            '"priceCurrency":"PEN","availability":"https://schema.org/InStock"}}}]}</script>')
+    p = sw._productos_jsonld(html)
+    assert p[0]["regular"] == 11.2 and p[0]["moneda"] == "PEN" and p[0]["marca"] == "PRIMOR"
+    nd = {"props": {"r": [{"displayName": "Gaseosa 1.5 L", "brand": "X", "url": "/u", "prices": [
+        {"crossed": False, "price": ["7.20"]}, {"crossed": True, "price": ["7.90"]}]}]}}
+    html2 = '<script id="__NEXT_DATA__" type="application/json">' + json.dumps(nd) + "</script>"
+    q = sw._productos_nextdata(html2)
+    assert q[0]["regular"] == 7.9 and q[0]["promo"] == 7.2
+
+
+def test_a_float_formatos():
+    from tools.scraper_web import _a_float
+    assert _a_float("1.234,50") == 1234.5 and _a_float("9.50") == 9.5 and _a_float(["11"]) == 11.0
+
+
+def test_otra_region_exige_tipo_cambio(monkeypatch):
+    from tools.investigacion import investigar_producto_en_competidor
+    prod = obtener_producto("RAG-00488")
+    r = investigar_producto_en_competidor(prod, "wong", "c1", None)
+    assert r["estado"] == "fuera_de_region" and "tipo de cambio" in r["motivos"][0]
+
+
+def test_descubrir_competidor_registra_y_reutiliza(tmp_path, monkeypatch):
+    import shutil
+    from tools import descubrimiento as d
+    reg = tmp_path / "competidores.json"
+    shutil.copy(fuentes.REGISTRO_JSON, reg)
+    monkeypatch.setattr(fuentes, "REGISTRO_JSON", str(reg))
+    monkeypatch.setattr(d, "_probar_vtex", lambda base: ("ok", "API VTEX responde"))
+    r = d.descubrir_competidor("Super Prueba", "México", "https://www.superprueba.com.mx")
+    assert r["estado"] == "registrado" and r["tipo"] == "vtex" and r["moneda"] == "MXN"
+    assert d.descubrir_competidor("Super Prueba")["estado"] == "ya_registrado"   # la próxima vez no se redescubre
+    fuentes.cargar_registro()
+    assert "superprueba" in fuentes.COMPETIDORES
+    monkeypatch.setattr(fuentes, "REGISTRO_JSON", fuentes.REGISTRO_JSON)
+
+
+def test_tipo_cambio_misma_moneda_y_error():
+    from tools.descubrimiento import obtener_tipo_cambio
+    assert obtener_tipo_cambio("ARS", "ARS")["tipo_cambio"] == 1.0
