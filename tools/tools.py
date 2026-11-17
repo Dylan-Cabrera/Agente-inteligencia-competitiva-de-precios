@@ -9,8 +9,9 @@ import csv
 import os
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CATALOGO_CSV = os.path.join(RAIZ, "catalogo_ragnar.csv")
-CATALOGO_COLLECTION = "catalogo_ragnar_v2"  # v2: textos con prefijos de tarea de nomic
+CATALOGO_CSV = os.path.join(RAIZ, os.environ.get("CATALOGO_CSV", "catalogo_ragnar.csv"))
+_SUFIJO = "" if os.path.basename(CATALOGO_CSV) == "catalogo_ragnar.csv" else "_" + os.path.splitext(os.path.basename(CATALOGO_CSV))[0]
+CATALOGO_COLLECTION = "catalogo_ragnar_v2" + _SUFIJO  # v2: textos con prefijos de tarea de nomic
 INFORMES_COLLECTION = "informes"
 VECTOR_STORE_DIR = os.path.join(RAIZ, "vector_store")
 EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "nomic-embed-text")
@@ -39,15 +40,22 @@ def web_search(query: str, max_results: int = 5) -> list | str:
     Returns:
         Lista de resultados (title, href, body), o el mensaje de error.
     """
+    import time
     try:
+        from ddgs import DDGS
+    except ImportError:
+        from duckduckgo_search import DDGS
+    error = None
+    for intento in range(3):  # DuckDuckGo devuelve "No results found" de forma intermitente
         try:
-            from ddgs import DDGS
-        except ImportError:
-            from duckduckgo_search import DDGS
-        with DDGS() as ddgs:
-            return list(ddgs.text(query, max_results=max_results))
-    except Exception as e:
-        return f"Error en la búsqueda web: {e}"
+            with DDGS() as ddgs:
+                res = list(ddgs.text(query, max_results=max_results))
+            if res:
+                return res
+        except Exception as e:
+            error = e
+        time.sleep(2 * (intento + 1))
+    return f"Error en la búsqueda web: {error or 'sin resultados'}"
 
 
 def index_data(text: str, c_name: str, metadata: dict | None = None) -> list | str:
