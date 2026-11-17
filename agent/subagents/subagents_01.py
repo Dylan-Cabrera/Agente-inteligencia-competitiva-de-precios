@@ -1,5 +1,5 @@
 from google.adk.agents.llm_agent import Agent
-from google.adk.models.lite_llm import LiteLlm
+from agent.modelo import crear_modelo
 from google.adk.tools.environment import EnvironmentToolset
 from google.adk.environment import LocalEnvironment
 import os
@@ -8,10 +8,7 @@ WORKING_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.pa
 os.makedirs(WORKING_DIR, exist_ok=True)
 
 agent_01 = Agent(
-    model=LiteLlm(
-        model=os.environ.get("MODELO_AGENTE", "ollama_chat/qwen3:8b"),
-        reasoning_effort="none"
-    ),
+    model=crear_modelo(),
     name='agent_01',
     description='Guarda informes comparativos (Markdown/CSV) y lee o modifica archivos en la carpeta de trabajo informes.',
     instruction="""Eres un agente que gestiona archivos dentro de tu carpeta de trabajo (informes).
